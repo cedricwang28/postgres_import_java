@@ -5,49 +5,123 @@ import java.net.*;
 
 
 
+
+
+
 public class DBConnect{
     public static void main(String[] args) throws Exception{
         
 
 
-        String url = "https://dd.weather.gc.ca/air_quality/aqhi/ont/observation/realtime/csv/2020070200_AQHI_ON_SiteObs.csv";
+        // String url = "https://dd.weather.gc.ca/air_quality/aqhi/ont/observation/realtime/csv/2020070200_AQHI_ON_SiteObs.csv";
 
         
 
-        Timer time = new Timer(false);
+        // Timer time = new Timer(false);
 
-        time.schedule(new TimerTask(){
-                public void run(){
-                    // downloadUsingStream(url, "./ontario.csv");
-                    System.out.println(new java.util.Date());
+        // time.schedule(new TimerTask(){
+        //         public void run(){
+        //             // downloadUsingStream(url, "./ontario.csv");
+        //             System.out.println(new java.util.Date());
+        //         }
+        // },new java.util.Date(),1000*60*60);
+
+        Connection connection = null;
+        PreparedStatement statement;
+        int batchSize = 20;
+
+        String url = "jdbc:postgresql://localhost:5432/transnomis";
+        String user = "postgres";
+        String password = "651125";
+
+        try {
+ 
+            try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        // List list = readCSV();
+
+        connection = DriverManager.getConnection(url,user,password);
+
+        connection.setAutoCommit(false);
+        String sql = "INSERT INTO observation (date, hour, faffd,falif,falji) VALUES (?, ?, ?,?,?)";
+        statement = connection.prepareStatement(sql);
+        BufferedReader lineReader = new BufferedReader(new FileReader("./ontario.csv"));
+
+        String lineText = null;
+ 
+            int count = 0;
+ 
+            lineReader.readLine(); 
+ 
+            while ((lineText = lineReader.readLine()) != null) {
+                count++;
+                String[] data = lineText.split(",");
+                String date = data[0];
+                String hour = data[1];
+                String faffd = data[2];
+                String falif = data[3];
+                String falji = data[4];
+                
+                statement.setString(1, date);
+                statement.setString(2, hour);
+                statement.setString(3, faffd);
+                statement.setString(4, falif);
+                statement.setString(5, falji);
+ 
+                statement.addBatch();
+ 
+                if (count % batchSize == 0) {
+                    statement.executeBatch();
                 }
-        },new java.util.Date(),1000*60*60);
+            }
+            lineReader.close();
+            statement.executeBatch();
 
-
-        // readCSV();
-
-        PGConnection();
-
-
-
+            connection.commit();
+            connection.close();
+ 
+        } catch (IOException ex) {
+            System.err.println(ex);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+ 
+            try {
+                connection.rollback();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+ 
     }
+
+
+
+
+        
+        
+
+
 
     
 
-    public static List<KGInfo> readCSV() {
+    
+
+    public static ArrayList readCSV() {
+        ArrayList<String> list = new ArrayList<String>();
+
         try {
-            List<KGInfo> kgInfoList = new ArrayList<>();
+            
             BufferedReader reader = new BufferedReader(new FileReader("./ontario.csv"));
             reader.readLine();
             String line = null;
             while ((line = reader.readLine()) != null) {
-                KGInfo kgInfo=new KGInfo();
-                String item[] = line.split(",");
-                kgInfo.setDate(item[0]);
-                kgInfo.setHour(item[1]);
-                kgInfo.setFaffd(item[2]);
-
-                kgInfoList.add(kgInfo);
+               
+               
+                list.add(line);
                 
                 // int value = Integer.parseInt(last);
 
@@ -55,12 +129,17 @@ public class DBConnect{
                 // System.out.println(last);
             }
             System.out.println(list);
+            return list;
             
-        } catch (Exception e) {
-        }
-        return kgInfoList;
+        } 
         
-    }
+        catch (Exception e) {
+
+        }
+        return null;
+    }    
+        
+    
 
     public static void downloadUsingStream(String urlStr, String file) throws IOException{
         URL url = new URL(urlStr);
@@ -77,55 +156,10 @@ public class DBConnect{
     }
 
 
-    public static void PGConnection()  throws Exception{
-        Connection con;
-        Statement st;
-        ResultSet rs;
-
-        String url = "jdbc:postgresql://localhost:5432/transnomis";
-        String user = "postgres";
-        String password = "651125";
-
-        try {
-            Class.forName("org.postgresql.Driver");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        List list = readCSV();
-
-        con = DriverManager.getConnection(url,user,password);
-        con.setAutoCommit(false);
-        PreparedStatement prep = conn.prepareStatement("INSERT INTO observation (date,hour,faffd)  VALUES (?,?,?)");
-        int num=0;
-        for (KGInfo value : list) {
-                num++;
-                prep.setString(1, value.getDate());
-                prep.setInteger(2,value.getHour());
-                prep.setDouble(3,value.getFaffd());
-                prep.addBatch();
-                if(num>100){
-                    System.out.println(prep);
-                    prep.executeBatch();
-                    conn.commit();
-                    num=0;
-                }
-                System.out.println(prep);
-                prep.executeBatch();
-                conn.commit();
-        }
-
-
-        rs.close();
-        st.close();
-        con.close();
-    }
-
-
-}
-
-
-
-class KGInfo{
     
+
+
 }
+
+
+
