@@ -24,68 +24,13 @@ public class DBConnect{
 
                     String url = "https://dd.weather.gc.ca/air_quality/aqhi/ont/observation/realtime/csv/202007"+getDay+getHour+"_AQHI_ON_SiteObs.csv";
                     System.out.println(url);
+
+
                     try {
                         downloadUsingStream(url, "./ontario.csv");
                         
-                        Connection con = null;
-                        PreparedStatement statement;
-                        PreparedStatement statement2;
-                        ResultSet rs;
-                        
-                        try {
- 
-                            try {
-                                Class.forName("org.postgresql.Driver");
-                            } catch (ClassNotFoundException e) {
-                                e.printStackTrace();
-                            }
-
-                            con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/transnomis","postgres","651125");
-
-                            String sql = "INSERT INTO observation (date, hour, faffd,falif,falji) VALUES (?, ?, ?,?,?)";
-                            String ifExist = "select * from observation where date = ? and hour = ?";
-                         
-                            statement = con.prepareStatement(sql);
-                            statement2 = con.prepareStatement(ifExist);
-
-                            BufferedReader lineReader = new BufferedReader(new FileReader("./ontario.csv"));
-
-                            String lineText = null;
-
-                            lineReader.readLine(); 
-                            lineText = lineReader.readLine();
- 
-                                String[] data = lineText.split(",");
-                                String date = data[0];
-                                String hour = data[1];
-                                String faffd = data[2];
-                                String falif = data[3];
-                                String falji = data[4];
-
-                                statement2.setString(1, date);
-                                statement2.setString(2, hour);
-
-                                rs = statement2.executeQuery();
-                                if(!rs.next()){
-                                    // statement.setString(1, date);
-                                    // statement.setString(2, hour);
-                                    // statement.setString(3, faffd);
-                                    // statement.setString(4, falif);
-                                    // statement.setString(5, falji);
-
-                                    // statement.executeQuery();
-                                }
-
-                                
-                
-                                lineReader.close();
-                                con.close();
-                
-                            } catch (IOException ex) {
-                                System.err.println(ex);
-                            } catch (SQLException ex) {
-                                ex.printStackTrace();
-                            }
+                        importData();
+                           
 
                     }
                     catch(IOException e) {
@@ -98,8 +43,13 @@ public class DBConnect{
 
         
        
-        
+        importData();
 
+ 
+    }
+
+
+    public static void importData() throws IOException{
         Connection connection = null;
         PreparedStatement statement;
         PreparedStatement statement2;
@@ -182,11 +132,9 @@ public class DBConnect{
                 e.printStackTrace();
             }
         }
- 
     }
 
 
-    
 
     public static void downloadUsingStream(String urlStr, String file) throws IOException{
         URL url = new URL(urlStr);
