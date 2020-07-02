@@ -2,8 +2,9 @@ import java.sql.*;
 import java.io.*;
 import java.util.*;
 import java.net.*;
-
-
+import java.util.Date;  
+import java.text.SimpleDateFormat;  
+import java.util.Calendar;  
 
 
 
@@ -11,23 +12,38 @@ import java.net.*;
 public class DBConnect{
     public static void main(String[] args) throws Exception{
         
+       
+        Timer time = new Timer(false);
 
+        time.schedule(new TimerTask(){
+                public void run(){
+                    Date cur = new Date();
+                    String getDay = cur.toString().substring(8,10);
+                    String getHour = cur.toString().substring(11,13)+3;
 
-        // String url = "https://dd.weather.gc.ca/air_quality/aqhi/ont/observation/realtime/csv/2020070200_AQHI_ON_SiteObs.csv";
+                    String url = "https://dd.weather.gc.ca/air_quality/aqhi/ont/observation/realtime/csv/202007"+getDay+getHour+"_AQHI_ON_SiteObs.csv";
+                    System.out.println(url);
+                    try {
+                        downloadUsingStream(url, "./ontario.csv");
+                    }
+                    catch(IOException e) {
+                        e.printStackTrace();
+                        System.out.println("page not found");
+                    }
+                    
+
+                    
+                }
+        },new java.util.Date(),1000*60*60);
 
         
-
-        // Timer time = new Timer(false);
-
-        // time.schedule(new TimerTask(){
-        //         public void run(){
-        //             // downloadUsingStream(url, "./ontario.csv");
-        //             System.out.println(new java.util.Date());
-        //         }
-        // },new java.util.Date(),1000*60*60);
+       
+        
 
         Connection connection = null;
         PreparedStatement statement;
+        PreparedStatement statement2;
+        ResultSet rs;
         int batchSize = 20;
 
         String url = "jdbc:postgresql://localhost:5432/transnomis";
@@ -42,13 +58,14 @@ public class DBConnect{
             e.printStackTrace();
         }
 
-        // List list = readCSV();
 
         connection = DriverManager.getConnection(url,user,password);
 
         connection.setAutoCommit(false);
         String sql = "INSERT INTO observation (date, hour, faffd,falif,falji) VALUES (?, ?, ?,?,?)";
+        String ifExist = "select * from observation where date = ? and hour = ?";
         statement = connection.prepareStatement(sql);
+        statement2 = connection.prepareStatement(ifExist);
         BufferedReader lineReader = new BufferedReader(new FileReader("./ontario.csv"));
 
         String lineText = null;
@@ -65,13 +82,23 @@ public class DBConnect{
                 String faffd = data[2];
                 String falif = data[3];
                 String falji = data[4];
+
+                statement2.setString(1, date);
+                statement2.setString(2, hour);
+
+                rs = statement2.executeQuery();
+                if(rs.next()){
+                    continue;
+                }
+
                 
                 statement.setString(1, date);
                 statement.setString(2, hour);
                 statement.setString(3, faffd);
                 statement.setString(4, falif);
                 statement.setString(5, falji);
- 
+
+               
                 statement.addBatch();
  
                 if (count % batchSize == 0) {
