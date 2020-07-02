@@ -39,9 +39,14 @@ public class DBConnect{
         String url = "https://dd.weather.gc.ca/air_quality/aqhi/ont/observation/realtime/csv/2020070200_AQHI_ON_SiteObs.csv";
 
         try {
-           
 
-            downloadUsingStream(url, "./ontario.csv");
+            Timer time = new Timer(false);
+            time.schedule(new TimerTask(){
+                public void run(){
+                    downloadUsingStream(url, "./ontario.csv");
+                }
+            },new java.util.Date(),2000);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
